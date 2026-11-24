@@ -20,6 +20,27 @@ def validate_entry(text: str) -> None:
     assert 1 <= len(text) <= 199, f"entry length {len(text)} chars, must be 1-199"
     assert text.strip(), "entry is only whitespace"
     assert "\n" not in text and "\r" not in text, "entry must be a single line"
+    # No stray leading/trailing whitespace.
+    assert text == text.strip(), "entry must not have leading/trailing whitespace"
+    # No control characters other than tab/newline (DEL included).
+    bad = [c for c in text if (ord(c) < 32 and c not in ("\t", "\n")) or ord(c) == 127]
+    assert not bad, f"entry contains control character(s): {[hex(ord(c)) for c in bad]}"
+
+
+def run_self_tests() -> None:
+    """Negative self-tests: each bad input must FAIL validation as expected."""
+    validate_entry(ENTRY)  # positive control: the real entry passes
+    bad_cases = {
+        "embedded control char": ENTRY.replace("guarded", "guard\x01ed"),
+        "trailing whitespace": ENTRY + " ",
+    }
+    for name, bad_text in bad_cases.items():
+        try:
+            validate_entry(bad_text)
+        except AssertionError:
+            continue  # expected: validation rejected it
+        raise AssertionError(f"self-test FAILED: {name} passed validation but must fail")
+    print(f"self-tests passed ({len(bad_cases)} negative cases rejected as expected)")
 
 
 def main() -> None:
@@ -36,4 +57,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    run_self_tests()
     main()
